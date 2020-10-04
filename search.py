@@ -11,6 +11,8 @@ from collections import deque
 
 from utils import *
 
+import time
+cutOff = 120
 
 class Problem:
     """The abstract class for a formal problem. You should subclass
@@ -270,7 +272,12 @@ def best_first_graph_search(problem, f, display=False):
     frontier = PriorityQueue('min', f)
     frontier.append(node)
     explored = set()
+    tic = time.time()
     while frontier:
+        toc = time.time()
+        if toc - tic > cutOff:
+            print("Took too long")
+            return None
         node = frontier.pop()
         if problem.goal_test(node.state):
             if display:

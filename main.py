@@ -2,9 +2,10 @@ import utils
 from search import *
 import random
 import time
+import math
 
 # Keep everything consistent
-random.seed(0)
+random.seed(1)
 
 # Define the numbers in the puzzle
 puzzleNums = range(10)
@@ -69,17 +70,22 @@ def fnCompareSearchMethods():
     # 2. Solve the boards one method at a time
     # Start with A* basic
     tic = time.time()
+    i = 0
 
-    for i in range(8):
+    while i < 8:
+        #display( puzzleLstCpy[i].initial )
         tic2 = time.time()
-        display( puzzleLstCpy[i].initial )
         astar_search(puzzleLstCpy[i], None, True)
         toc2 = time.time()
-        print(tic-toc)
+        if math.ceil(toc2-tic2) == cutOff or math.floor(toc2-tic2) == cutOff:
+            puzzleLstCpy[i] = make_rand_StagePuzzle()
+            continue
+        print("Solved number " + i + ".")
         print()
+        i = i + 1
 
     toc = time.time()
-    astarh1Time = tic - toc
+    astarh1Time = toc - tic
     print(tastarh1Time)
 
 def main():
