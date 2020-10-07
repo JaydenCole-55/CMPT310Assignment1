@@ -12,7 +12,6 @@ from collections import deque
 from utils import *
 
 import time
-cutOff = 120
 
 class Problem:
     """The abstract class for a formal problem. You should subclass
@@ -84,6 +83,7 @@ class Node:
         self.action = action
         self.path_cost = path_cost
         self.depth = 0
+        self.frontierNodesRemoved = 0
         if parent:
             self.depth = parent.depth + 1
 
@@ -259,7 +259,7 @@ def breadth_first_graph_search(problem):
     return None
 
 
-def best_first_graph_search(problem, f, display=False):
+def best_first_graph_search(problem, f, display=False, timeLimit=None):
     """Search the nodes with the lowest f scores first.
     You specify the function f(node) that you want to minimize; for example,
     if f is a heuristic estimate to the goal, then we have greedy best
@@ -275,11 +275,13 @@ def best_first_graph_search(problem, f, display=False):
     tic = time.time()
     while frontier:
         toc = time.time()
-        if toc - tic > cutOff:
+        # Add time limit to eliminate solns that take too long
+        if toc - tic > timeLimit:
             print("Took too long")
             return None
         node = frontier.pop()
         if problem.goal_test(node.state):
+            node.frontierNodesRemoved = len(explored)
             if display:
                 print(len(explored), "paths have been expanded and", len(frontier), "paths remain in the frontier")
             return node
@@ -419,12 +421,12 @@ greedy_best_first_graph_search = best_first_graph_search
 # Greedy best-first search is accomplished by specifying f(n) = h(n).
 
 
-def astar_search(problem, h=None, display=False):
+def astar_search(problem, h=None, display=False, timeLimit=None):
     """A* search is best-first graph search with f(n) = g(n)+h(n).
     You need to specify the h function when you call astar_search, or
     else in your Problem subclass."""
     h = memoize(h or problem.h, 'h')
-    return best_first_graph_search(problem, lambda n: n.path_cost + h(n), display)
+    return best_first_graph_search(problem, lambda n: n.path_cost + h(n), display, timeLimit)
 
 
 # ______________________________________________________________________________
@@ -517,6 +519,65 @@ class StagePuzzle(Problem):
         h(n) = number of misplaced tiles """
 
         return sum(s != g for (s, g) in zip(node.state, self.goal))
+
+    def fnMyManhattenHeuristic(self, node):
+        '''
+        For each number, calculate its manhatten distance (using 1-3 row and 1-4 cols)
+        Passed: State and a Goal
+        Returns: int (manhatten distance)
+        '''
+        manhatDist = 0
+        tiles = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+        for i in tiles:
+            # FOr the tiles current and goal position, 
+            curIndex = node.state.index(i)
+            [stateRow, stateCol] = self.fnGetRowAndCol( curIndex )
+
+            goalIndex = self.goal.index(i)
+            [goalRow, goalCol] = self.fnGetRowAndCol( goalIndex )
+
+            manhatDist += ( abs(goalRow - stateRow) + abs(goalCol - stateCol) )
+
+        return manhatDist
+     
+    def fnGetRowAndCol(self, index):
+        ''' 
+        Returns the row and column (x and y coords) of a specific square
+        Passed: An index between 0-9
+        Retursn: [row, col]
+        '''
+        row = 0
+        col = 0
+
+        # Get index row
+        if index in [0, 1]:
+            row = 1
+        elif index in [2, 3, 4, 5]:
+            row = 2
+        else:
+            row = 3
+
+        # Get index column
+        if index in [2, 6]:
+            col = 1
+        elif index in [0, 3, 7]:
+            col = 2
+        elif index in [1, 4, 8]:
+            col = 3
+        else:
+            col = 4
+
+        return [row, col]
+
+    def fnGetMaxHeuristic(self, node):
+        ''' Gets the maximum of the two heuristics used already
+        Passed: Current node
+        Returns: int
+        '''
+        manhatten = self.fnMyManhattenHeuristic(node)
+        regular   = self.h(node)
+        return max(manhatten, regular)
 
 class EightPuzzle(Problem):
     """ The problem of sliding tiles numbered from 1 to 8 on a 3x3 board, where one of the
